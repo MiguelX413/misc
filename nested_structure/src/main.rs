@@ -28,19 +28,19 @@ impl Display for Operation {
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum Part {
+pub enum Interval {
     Segment(i64, i64),
-    Expression(Box<Part>, Operation, Box<Part>),
+    Expression(Box<Interval>, Operation, Box<Interval>),
 }
 
-impl Display for Part {
+impl Display for Interval {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Segment(a, b) => {
                 write!(f, "[{}, {}]", a, b)
             }
             Self::Expression(a, b, c) => {
-                let sub_part = |ff: &mut Formatter, p: &Part| {
+                let sub_part = |ff: &mut Formatter, p: &Interval| {
                     match p {
                         Self::Segment(_, _) => {
                             write!(ff, "{}", p)?;
@@ -61,16 +61,16 @@ impl Display for Part {
     }
 }
 
-impl From<(i64, i64)> for Part {
+impl From<(i64, i64)> for Interval {
     fn from(segment: (i64, i64)) -> Self {
         Self::Segment(segment.0, segment.1)
     }
 }
 
-impl<A, B> From<(A, Operation, B)> for Part
+impl<A, B> From<(A, Operation, B)> for Interval
 where
-    A: Into<Part>,
-    B: Into<Part>,
+    A: Into<Interval>,
+    B: Into<Interval>,
 {
     fn from(expression: (A, Operation, B)) -> Self {
         Self::Expression(
@@ -84,14 +84,14 @@ where
 fn main() {
     println!(
         "{}",
-        Part::from((
-            Part::from((
+        Interval::from((
+            Interval::from((
                 (10, 40),
                 Operation::Union,
-                Part::from(((100, 200), Operation::Intersection, (125, 175)))
+                Interval::from(((100, 200), Operation::Intersection, (125, 175)))
             )),
             Operation::Difference,
-            Part::from(((20, 40), Operation::Intersection, (10, 30)))
+            Interval::from(((20, 40), Operation::Intersection, (10, 30)))
         ))
     );
 }
