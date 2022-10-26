@@ -1,27 +1,23 @@
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Operation {
+pub enum Op {
     Union,
     Intersection,
     Difference,
+    SymmetricDifference,
 }
 
-impl Display for Operation {
+impl Display for Op {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                Self::Union => {
-                    "∪"
-                }
-                Self::Intersection => {
-                    "∩"
-                }
-                Self::Difference => {
-                    "-"
-                }
+                Self::Union => "∪",
+                Self::Intersection => "∩",
+                Self::Difference => "-",
+                Self::SymmetricDifference => "⊖",
             }
         )
     }
@@ -30,7 +26,7 @@ impl Display for Operation {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Interval {
     Segment(i64, i64),
-    Expression(Box<Interval>, Operation, Box<Interval>),
+    Expression(Box<Interval>, Op, Box<Interval>),
 }
 
 impl Display for Interval {
@@ -67,12 +63,12 @@ impl From<(i64, i64)> for Interval {
     }
 }
 
-impl<A, B> From<(A, Operation, B)> for Interval
+impl<A, B> From<(A, Op, B)> for Interval
 where
     A: Into<Interval>,
     B: Into<Interval>,
 {
-    fn from(expression: (A, Operation, B)) -> Self {
+    fn from(expression: (A, Op, B)) -> Self {
         Self::Expression(
             Box::new(expression.0.into()),
             expression.1,
@@ -81,17 +77,33 @@ where
     }
 }
 
+impl Interval {
+    pub fn contains(&self, num: &i64) -> bool {
+        match self {
+            Self::Segment(a, b) => (a <= num) & (num <= b),
+            Self::Expression(a, op, b) => match op {
+                Op::Union => match a as &Interval {
+                    Self::Segment(_, _) => a.contains(num) || b.contains(num),
+                    _ => b.contains(num) || a.contains(num),
+                },
+                Op::Intersection => a.contains(num) && b.contains(num),
+                Op::Difference => a.contains(num) && !b.contains(num),
+                Op::SymmetricDifference => a.contains(num) ^ b.contains(num),
+            },
+        }
+    }
+}
+
 fn main() {
-    println!(
-        "{}",
+    let interval = Interval::from((
         Interval::from((
-            Interval::from((
-                (10, 40),
-                Operation::Union,
-                Interval::from(((100, 200), Operation::Intersection, (125, 175)))
-            )),
-            Operation::Difference,
-            Interval::from(((20, 40), Operation::Intersection, (10, 30)))
-        ))
-    );
+            (10, 40),
+            Op::Union,
+            Interval::from(((100, 200), Op::Intersection, (125, 175))),
+        )),
+        Op::Difference,
+        Interval::from(((20, 40), Op::Intersection, (10, 30))),
+    ));
+    println!("{}", interval,);
+    println!("{}", interval.contains(&25),)
 }
